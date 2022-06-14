@@ -12,6 +12,6 @@ COPY ./lib ./lib
 
 RUN python3 /tca_action/src/codedog_scan.py init
 
-WORKDIR /tca_action/lib/codedog
+#ENTRYPOINT ["/entrypoint.sh"]
 
 CMD ["python3", "/tca_action/src/codedog_scan.py", "scan"]
