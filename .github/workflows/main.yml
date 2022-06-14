@@ -8,7 +8,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Tencent Cloud Code Analysis
-        uses: TCATools/TCA-action@main
+        uses: ./
         with:
           block: true
           label: open-standard
