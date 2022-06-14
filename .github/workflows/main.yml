@@ -10,5 +10,5 @@ jobs:
       - name: Tencent Cloud Code Analysis
         uses: ./
         with:
-          block: true
+          block: false
           label: open-standard
