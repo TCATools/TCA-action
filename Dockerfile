@@ -8,6 +8,7 @@ RUN apt-get update \
 # install pylint semgrep
 RUN pip3 install pylint==2.6.0 semgrep==0.54.0
 
+WORKDIR /tca_action
 COPY ./src ./src
 COPY ./lib ./lib
 COPY ./entrypoint.sh ./entrypoint.sh
