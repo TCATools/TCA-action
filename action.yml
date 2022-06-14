@@ -1,0 +1,29 @@
+# action.yml
+name: 'Tencent Cloud Code Analysis'
+description: 'code analysis'
+inputs:
+  block:
+    description: '未通过检查时是否抛出错误阻塞流程'
+    required: false
+    default: 'true'
+  label:
+    description: '规则标签'
+    required: false
+    default: 'open-standard'
+  from_file:
+    description: '填写一个相对工作区的文件路径，文件内容：待扫描的文件列表，一行一个文件，采用相对路径格式。 如果不指定，则扫描整个工作区的代码文件。'
+    required: false
+  white_paths:
+    description: '指定相对工作区的扫描路径正则表达式(白名单)，多个用英文逗号分割。'
+    required: false
+  ignore_paths:
+    description: '指定相对工作区屏蔽路径正则表达式(黑名单)，多个用英文逗号分割。'
+    required: false
+outputs:
+  report:
+    description: 'The scan result'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.rule-label }}
