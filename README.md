@@ -43,12 +43,14 @@ output result in logs.
 
 `.github/workflows/tca.yml`
 ```
+name: Tencent Cloud Code Analysis
+
 on: [push]
 
 jobs:
   CodeAnalysis:
     runs-on: ubuntu-latest
-    name: code analysis
+    name: Tencent Cloud Code Analysis
     steps:
       - name: Checkout
         uses: actions/checkout@v3
