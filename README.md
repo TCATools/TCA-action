@@ -14,7 +14,7 @@ This action uses [Tencent Cloud Code Analysis (TCA for short, code-named CodeDog
 - type: String
 - required: 否
 - default: open-standard
-- 规则标签，可选值: open-standard(开源合规检查), open-source(对外开源检查)。默认值：open-standard。
+- 规则标签，可选值: open_source_check(开源合规检查), safety(安全检查), sensitive(敏感信息检查)。默认值：open_source_check。
 
 ### from_file
 - type: String

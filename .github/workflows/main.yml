@@ -11,4 +11,4 @@ jobs:
         uses: ./
         with:
           block: false
-          label: open-standard
+          label: open_source_check

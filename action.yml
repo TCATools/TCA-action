@@ -9,7 +9,7 @@ inputs:
   label:
     description: '规则标签'
     required: false
-    default: 'open-standard'
+    default: 'open_source_check'
   from_file:
     description: '填写一个相对工作区的文件路径，文件内容：待扫描的文件列表，一行一个文件，采用相对路径格式。 如果不指定，则扫描整个工作区的代码文件。'
     required: false

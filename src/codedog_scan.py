@@ -51,7 +51,7 @@ class TCAPlugin(object):
         self.block = self.get_param("block")
         self.label = self.get_param("label")
         if not self.label:
-            self.label = "open-standard"
+            self.label = "open_source_check"
         if self.block in ["false", "False"]:
             self.block = False
         else:
