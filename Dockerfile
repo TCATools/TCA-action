@@ -6,7 +6,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends $EXTRA_TOOLS
 
 # install pylint semgrep
-RUN pip3 install pylint==2.6.0 semgrep==0.54.0
+RUN pip3 install pylint==2.6.0 semgrep==0.54.0 pyyaml==5.3.1
 
 WORKDIR /tca_action
 COPY ./src ./src
