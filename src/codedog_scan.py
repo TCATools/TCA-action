@@ -112,18 +112,23 @@ class TCAPlugin(object):
             data = json.load(rf)
             self.status_code = data.get("error_code")
 
-            issue_count = data.get("issue_count")
-            if issue_count is not None:
-                if issue_count == 0:
-                    data["status"] = "pass"
-                    data["text"] = "通过"
-                    data["description"] = "通过"
-                else:
-                    data["status"] = "failed"
-                    data["text"] = "不通过"
-                    data["description"] = f"不通过, 待处理问题量: {issue_count}"
-                    if self.block:
-                        self.status_code = 1
+            if self.status_code == 0:  # 正常执行完成，才判断问题量
+                issue_count = data.get("issue_count")
+                if issue_count is not None:
+                    if issue_count == 0:
+                        data["status"] = "pass"
+                        data["text"] = "通过"
+                        data["description"] = "通过"
+                    else:
+                        data["status"] = "failed"
+                        data["text"] = "不通过"
+                        data["description"] = f"不通过, 待处理问题量: {issue_count}"
+                        if self.block:
+                            self.status_code = 1
+            else:  # 执行异常，如果设置了不block，修改错误码为0，不阻塞流程
+                if not self.block:
+                    logger.warning(f"param block=false, reset status code({self.status_code}) to 0.")
+                    self.status_code = 0
 
         data_str = json.dumps(data, indent=2, ensure_ascii=False)
         logger.info(f"扫描结果:\n{data_str}")
