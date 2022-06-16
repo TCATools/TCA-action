@@ -39,11 +39,14 @@ output result in logs.
 
 
 ## Example usage
+在github仓库的工作流目录（如果`.github/workflows`目录不存在，先创建）下增加以下`tca.yml`文件，并提交即可。每次代码提交操作，都将触发一次TCA代码分析。
+
+`.github/workflows/tca.yml`
 ```
 on: [push]
 
 jobs:
-  Code Analysis:
+  CodeAnalysis:
     runs-on: ubuntu-latest
     name: code analysis
     steps:
