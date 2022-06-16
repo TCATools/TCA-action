@@ -13,7 +13,7 @@ This action uses [Tencent Cloud Code Analysis (TCA for short, code-named CodeDog
 ### label
 - type: String
 - required: 否
-- default: open-standard
+- default: open_source_check
 - 规则标签，可选值: open_source_check(开源合规检查), safety(安全检查), sensitive(敏感信息检查)。默认值：open_source_check。
 
 ### from_file
@@ -53,5 +53,5 @@ jobs:
         uses: TCATools/TCA-action@main
         with:
           block: true
-          label: open-standard
+          label: open_source_check
 ```
