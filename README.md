@@ -44,6 +44,7 @@ output result in logs.
 ### 1. 增量分析示例
 
 - 每次分析本次push提交的变更代码文件。通过git命令获取到变更文件，写入到`changed.txt`文件，传递给`from_file`参数。
+- `ignore_paths`设置为过滤掉`.github/workflows/`目录，如果需要扫描，可以去掉。
 - 注意：Checkout拉代码步骤，需要设置参数`fetch-depth: 2`，拉取至少2层深度的git记录，否则无法获取到变更文件。
 
 `.github/workflows/tca.yml`
@@ -69,11 +70,13 @@ jobs:
           block: true
           label: open_source_check
           from_file: changed.txt
+          ignore_paths: .github/workflows/.*
 ```
 
 ### 2.全量分析示例
 
 - 不传递`from_file`参数，默认扫描全量代码文件。
+- `ignore_paths`设置为过滤掉`.github/workflows/`目录，如果需要扫描，可以去掉。
 
 `.github/workflows/tca.yml`
 ```
@@ -93,4 +96,5 @@ jobs:
         with:
           block: true
           label: open_source_check
+          ignore_paths: .github/workflows/.*
 ```
