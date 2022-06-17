@@ -19,4 +19,4 @@ jobs:
           block: false
           label: open_source_check
           from_file: changed.txt
-          ignore_paths: .github/workflows/.*
+          ignore_paths: .git/.*,.github/workflows/.*
