@@ -1,35 +1,35 @@
 # TCA-action
 
+- 说明：该文档使用的是Dockfile方式运行，会增加额外的docker build耗时，推荐直接使用dorker容器镜像的方式执行（详见[`README.md`](../README.md)）
+
 This action uses [Tencent Cloud Code Analysis (TCA for short, code-named CodeDog inside the company early)](https://github.com/Tencent/CodeAnalysis) to analyze code.
 
 ## Inputs
 
-通过环境变量输入参数，支持以下环境变量：
-
-### INPUT_BLOCK
-- type: String
+### block
+- type: Boolean
 - required: 否
 - default: true
-- 未通过检查时是否显示为失败(返回码非0)，可选值：true，false。
+- 未通过检查时是否显示为失败(返回码非0)。
 
-### INPUT_LABEL
+### label
 - type: String
 - required: 否
 - default: open_source_check
 - 规则标签，可选值: open_source_check(开源合规检查), safety(安全检查), sensitive(敏感信息检查)。默认值：open_source_check。
 
-### INPUT_FROM_FILE
+### from_file
 - type: String
 - required: 否
 - 填写一个相对工作区的文件路径，文件内容：待扫描的文件列表，一行一个文件，采用相对路径格式。
 如果不指定，则扫描整个工作区的代码文件。
 
-### INPUT_WHITE_PATHS
+### white_paths
 - type: String
 - required: 否
 - 指定相对工作区的扫描路径正则表达式(白名单)，多个用英文逗号分割。
 
-### INPUT_IGNORE_PATHS
+### ignore_paths
 - type: String
 - required: 否
 - 指定相对工作区屏蔽路径正则表达式(黑名单)，多个用英文逗号分割。
@@ -51,30 +51,28 @@ output result in logs.
 
 `.github/workflows/tca.yml`
 ```
-name: TCA
+name: Tencent Cloud Code Analysis
 
 on: [push]
 
 jobs:
-  TCA:
-    name: Tencent Cloud Code Analysis
+  CodeAnalysis:
     runs-on: ubuntu-latest
-    env:
-      INPUT_BLOCK: true
-      INPUT_LABEL: open_source_check
-      INPUT_IGNORE_PATHS: .git/.*,.github/workflows/.*
-      INPUT_FROM_FILE: changed.txt
-    container:
-      image: bensonhome/tca-action
+    name: Tencent Cloud Code Analysis
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 2
       - name: get git diff files
-        run: git diff ${{ github.sha }} ${{ github.sha }}^ --name-only > changed.txt  && cat changed.txt
+        run: git diff ${{ github.sha }} ${{ github.sha }}^ --name-only > changed.txt && cat changed.txt
       - name: Tencent Cloud Code Analysis
-        run: /tca_action/entrypoint.sh
+        uses: TCATools/TCA-action@main
+        with:
+          block: true
+          label: open_source_check
+          from_file: changed.txt
+          ignore_paths: .git/.*,.github/workflows/.*
 ```
 
 ### 2.全量分析示例
@@ -84,23 +82,21 @@ jobs:
 
 `.github/workflows/tca.yml`
 ```
-name: TCA
+name: Tencent Cloud Code Analysis
 
 on: [push]
 
 jobs:
-  TCA:
-    name: Tencent Cloud Code Analysis
+  CodeAnalysis:
     runs-on: ubuntu-latest
-    env:
-      INPUT_BLOCK: true
-      INPUT_LABEL: open_source_check
-      INPUT_IGNORE_PATHS: .git/.*,.github/workflows/.*
-    container:
-      image: bensonhome/tca-action
+    name: Tencent Cloud Code Analysis
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Tencent Cloud Code Analysis
-        run: /tca_action/entrypoint.sh
+        uses: TCATools/TCA-action@main
+        with:
+          block: true
+          label: open_source_check
+          ignore_paths: .git/.*,.github/workflows/.*
 ```
