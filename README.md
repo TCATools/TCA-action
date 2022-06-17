@@ -41,6 +41,40 @@ output result in logs.
 ## Example usage
 在github仓库的工作流目录（如果`.github/workflows`目录不存在，先创建）下增加以下`tca.yml`文件，并提交即可。每次代码提交操作，都将触发一次TCA代码分析。
 
+### 1. 增量分析示例
+
+- 每次分析本次push提交的变更代码文件。通过git命令获取到变更文件，写入到`changed.txt`文件，传递给`from_file`参数。
+- 注意：Checkout拉代码步骤，需要设置参数`fetch-depth: 2`，拉取至少2层深度的git记录，否则无法获取到变更文件。
+
+`.github/workflows/tca.yml`
+```
+name: Tencent Cloud Code Analysis
+
+on: [push]
+
+jobs:
+  CodeAnalysis:
+    runs-on: ubuntu-latest
+    name: Tencent Cloud Code Analysis
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: get git diff files
+        run: git diff-tree --no-commit-id --name-only -r ${{ github.sha }} > changed.txt
+      - name: Tencent Cloud Code Analysis
+        uses: TCATools/TCA-action@main
+        with:
+          block: true
+          label: open_source_check
+          from_file: changed.txt
+```
+
+### 2.全量分析示例
+
+- 不传递`from_file`参数，默认扫描全量代码文件。
+
 `.github/workflows/tca.yml`
 ```
 name: Tencent Cloud Code Analysis
