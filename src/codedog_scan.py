@@ -47,6 +47,13 @@ class TCAPlugin(object):
         LoggerMgr.setup_logger()
         self.status_code = 0
 
+        # 判断是否快速扫描模式
+        self.quick_scan = self.get_param("quick_scan")
+        if self.quick_scan in ["false", "False"]:
+            self.quick_scan = False
+        else:
+            self.quick_scan = True
+
         # 快速扫描模式 - 用户输入参数
         self.block = self.get_param("block")
         self.label = self.get_param("label")
@@ -59,6 +66,20 @@ class TCAPlugin(object):
         self.from_file = self.get_param("from_file")
         self.white_paths = self.get_param("white_paths")
         self.ignore_paths = self.get_param("ignore_paths")
+
+        # 完整扫描模式 - 用户输入参数
+        self.scheme_id = self.get_param("scheme_id")
+        self.languages = self.get_param("language")
+        self.total_scan = self.get_param("total_scan")
+        self.compare_branch = self.get_param("compare_branch")
+        self.source_dir = self.get_param("source_dir")
+        # 超时时间
+        self.timeout = self.get_param("timeout")
+        # 与服务端通信参数
+        self.token = self.get_param("token")
+        self.server_ip = self.get_param("server_ip")
+        self.org_sid = self.get_param("org_sid")
+        self.team_name = self.get_param("team_name")
 
         # 可执行程序名称
         self.codepuppy_name = setting.PUPPY_EXE_NAME
@@ -202,18 +223,51 @@ class TCAPlugin(object):
         scan_paths = FilterPathUtil(path_include, path_exclude).get_include_files(scan_paths, self.source_dir)
         return scan_paths
 
-    def scan_source_dir(self, cur_workspace, codedog_exe, codedog_work_dir):
+    def gen_status_file(self, status, text, url, desc, scan_result=None):
         """
-        扫描代码
+        生成结果文件
+        :param status:
+        :param text:
+        :param url:
+        :param desc:
+        :param scan_result:
         :return:
         """
-        if self.source_dir:  # 指定了代码相对路径,拼接成绝对路径
-            self.source_dir = os.path.abspath(self.source_dir)
-        else:  # 没有指定,默认使用当前工作空间目录
-            self.source_dir = os.path.abspath(cur_workspace)
+        if status == "cancel":
+            status = "success"
+            text = "跳过本次扫描"
 
-        logger.info(f"scan source_dir: {self.source_dir}")
-        self.run_quickscan(cur_workspace, codedog_exe, codedog_work_dir)
+        scan_report = {}
+        # 先对scan_result判空,否则会异常: TypeError: argument of type 'NoneType' is not iterable
+        if scan_result:
+            scan_report = scan_result.get("scan_report")
+
+        status_map = {"success": "通过", "failure": "不通过", "error": "执行异常"}
+        code_map = {"success": 0, "failure": 1, "error": 2}
+        self.status_code = code_map[status]
+
+        result = {
+            "status": status,
+            "status_code": self.status_code,
+            "text": text,
+            "url": url,
+            "description": desc,
+            "scan_report": scan_report,
+        }
+
+        result_msg = "\n"
+        result_msg += "*" * 100
+        result_msg += "\n检查结果: %s。" % status_map[status]
+        result_msg += "\n%s" % ("*" * 100)
+        logger.info(result_msg)
+
+        # 将结果输出到工作空间下的json文件,供后续步骤使用
+        workspace = os.getcwd()
+        codedog_report_file = os.path.join(workspace, "codedog_report.json")
+        if os.path.exists(codedog_report_file):
+            os.remove(codedog_report_file)
+        with open(codedog_report_file, "wb") as fp:
+            fp.write(str.encode(json.dumps(result, indent=2, ensure_ascii=False)))
 
     def __init_tools(self, tca_work_dir, codedog_exe):
         # 扫描参数
@@ -226,6 +280,96 @@ class TCAPlugin(object):
         sp = subprocess.Popen(args=scan_args, cwd=tca_work_dir)
         scan_time_out = setting.SCAN_TIMEOUT
         sp.wait(timeout=scan_time_out)
+
+    def run_localscan(self, codedog_exe, codedog_work_dir):
+        # 扫描参数
+        scan_args = [
+            codedog_exe, "localscan",
+            "-s", self.source_dir
+        ]
+        if self.token:
+            scan_args.extend(["-t", self.token])
+            # 通过环境变量设置文件服务器token
+            os.environ["FILE_SERVER_TOKEN"] = self.token
+        if self.server_ip:
+            server_url = f"http://{self.server_ip}/server/main/"
+            file_server_url = f"http://{self.server_ip}/server/files/"
+            # 通过环境变量设置文件服务器url
+            os.environ["FILE_SERVER_URL"] = file_server_url
+            scan_args.extend(["--server", server_url])
+        if self.org_sid:
+            scan_args.extend(["--org-sid", self.org_sid])
+        if self.team_name:
+            scan_args.extend(["--team-name", self.team_name])
+        if self.languages:
+            scan_args.extend(["--language", self.languages])
+        if self.total_scan and self.total_scan in ["True", "true"]:
+            scan_args.extend(["--total"])
+        if self.scheme_id:
+            scan_args.extend(['--ref-scheme-id', self.scheme_id])
+        if self.compare_branch:
+            scan_args.extend(["--compare-branch", self.compare_branch])
+            scan_args.extend(["--ignore-merged-issue"])
+
+        # 启动扫描进程
+        try:
+            # fix bug - 参数需要为str类型的list,不能包含int
+            scan_args = [str(item) for item in scan_args]
+
+            print_cmd_args = []
+            for item in scan_args:
+                if self.token == item:
+                    print_cmd_args.append("****")
+                else:
+                    print_cmd_args.append(item)
+            logger.info("run cmd: %s", " ".join(print_cmd_args))
+
+            sp = subprocess.Popen(args=scan_args, cwd=codedog_work_dir)
+            if self.timeout:
+                scan_time_out = self.timeout * 3600
+            else:
+                scan_time_out = setting.SCAN_TIMEOUT
+            logger.info("超时时间设置为: %s 小时" % (scan_time_out / 3600))
+            sp.wait(timeout=scan_time_out)
+        except Exception as err:
+            self.gen_status_file(status="error", text="扫描异常", url=None, desc=str(err))
+            raise err
+
+        result_file = os.path.join(codedog_work_dir, "scan_status.json")
+        if os.path.exists(result_file):
+            with open(result_file, "r", encoding="utf-8") as rf:
+                result_json = json.load(rf)
+            self.gen_status_file(
+                status=result_json["status"],
+                text=result_json["text"],
+                url=result_json["url"],
+                desc=result_json["description"],
+                scan_result=result_json,
+            )
+        else:
+            logger.warning("启动失败,未生成结果文件: %s" % result_file)
+            self.gen_status_file(
+                status="error",
+                text="启动失败",
+                url=None,
+                desc="启动失败,未生成结果文件: %s" % result_file,
+            )
+
+    def scan_source_dir(self, cur_workspace, codedog_exe, codedog_work_dir):
+        """
+        扫描代码
+        :return:
+        """
+        if self.source_dir:  # 指定了代码相对路径,拼接成绝对路径
+            self.source_dir = os.path.abspath(self.source_dir)
+        else:  # 没有指定,默认使用当前工作空间目录
+            self.source_dir = os.path.abspath(cur_workspace)
+
+        logger.info(f"scan source_dir: {self.source_dir}")
+        if self.quick_scan:
+            self.run_quickscan(cur_workspace, codedog_exe, codedog_work_dir)
+        else:
+            self.run_localscan(codedog_exe, codedog_work_dir)
 
     def run(self):
         args = CmdArgParser.parse_args()
@@ -254,7 +398,10 @@ class TCAPlugin(object):
             else:
                 tca_work_dir = PuppyDownloader().download_linux_client(tca_install_dir)
                 self.__chmod_exe(tca_work_dir)
-            self.__init_tools(tca_work_dir, codedog_exe)
+            if self.quick_scan:
+                self.__init_tools(tca_work_dir, codedog_exe)
+            else:
+                logger.info(f"It is not quick scan, skip initing tools.")
         elif args.command == "scan":
             logger.info("开始扫描代码 ...")
             self.scan_source_dir(cur_workspace, codedog_exe, tca_work_dir)
