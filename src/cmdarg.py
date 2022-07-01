@@ -30,7 +30,4 @@ class CmdArgParser(object):
         # scan命令
         subparsers.add_parser('scan', help="执行分析")
 
-        # init命令
-        subparsers.add_parser('init', help="初始化")
-
         return argparser.parse_args()

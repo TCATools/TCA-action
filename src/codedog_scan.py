@@ -375,34 +375,41 @@ class TCAPlugin(object):
         args = CmdArgParser.parse_args()
         cur_workspace = os.getcwd()
 
-        # CodeDog客户端存放目录
+        # 插件存放目录
         plugin_dir = "/tca_action/"
         if not os.path.exists(plugin_dir):
             plugin_dir = os.path.dirname(cur_workspace)
+
         # 客户端安装目录
         tca_install_dir = os.path.join(plugin_dir, "lib")
         if not os.path.exists(tca_install_dir):
             os.makedirs(tca_install_dir)
         logger.info(f"tca_install_dir: {tca_install_dir}")
 
-        zip_file_name = PUPPY_DOWNLOAD_URL.split('/')[-1]
-        tca_work_dirname = os.path.splitext(zip_file_name)[0]
+        # 默认客户端工作目录，如果存在，直接复用；否则重新下载
+        tca_work_dir = os.path.join(tca_install_dir, "tca-client")
 
-        tca_work_dir = os.path.join(tca_install_dir, tca_work_dirname)
-        logger.info("tca_work_dir: %s" % tca_work_dir)
-        codedog_exe = os.path.join(tca_work_dir, self.codepuppy_name)
-
-        if args.command == "init":
-            if os.path.exists(codedog_exe):
-                logger.info(f"{codedog_exe} existis, reuse it.")
-            else:
+        if os.path.exists(tca_work_dir):  # 使用默认的tca-client目录(把客户端提前打包内置在docker中)
+            logger.info("tca_work_dir: %s" % tca_work_dir)
+            logger.info(f"{tca_work_dir} existis, reuse it.")
+        else:  # 使用从下载url提取的目录，比如：tca-client-v20220629.1-x86_64-linux
+            zip_file_name = PUPPY_DOWNLOAD_URL.split('/')[-1]
+            tca_work_dirname = os.path.splitext(zip_file_name)[0]
+            tca_work_dir = os.path.join(tca_install_dir, tca_work_dirname)
+            logger.info("tca_work_dir: %s" % tca_work_dir)
+            if os.path.exists(tca_work_dir):
+                logger.info(f"{tca_work_dir} exists, reuse it.")
+            else:  # 重新下载
                 tca_work_dir = PuppyDownloader().download_linux_client(tca_install_dir)
                 self.__chmod_exe(tca_work_dir)
+
+        codedog_exe = os.path.join(tca_work_dir, self.codepuppy_name)
+        if args.command == "scan":
             if self.quick_scan:
                 self.__init_tools(tca_work_dir, codedog_exe)
             else:
                 logger.info(f"It is not quick scan, skip initing tools.")
-        elif args.command == "scan":
+
             logger.info("开始扫描代码 ...")
             self.scan_source_dir(cur_workspace, codedog_exe, tca_work_dir)
 
@@ -411,7 +418,7 @@ class TCAPlugin(object):
                 logger.warning(f"status code: {self.status_code}")
                 sys.exit(self.status_code)
         else:
-            logger.warning(f"args need: init, scan.")
+            logger.warning(f"args need: scan.")
 
 
 if __name__ == "__main__":
