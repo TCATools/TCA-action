@@ -2,7 +2,7 @@
 
 This action uses [Tencent Cloud Code Analysis (TCA for short, code-named CodeDog inside the company early)](https://github.com/Tencent/CodeAnalysis) to analyze code.
 
-- 说明：当前为快速扫描模式，只在日志中展示结果。更多功能（比如问题提交到自己搭建的server、问题追踪、体验更多分析规则包）可参考[完整模式用法](https://github.com/TCATools/TCA-action/blob/main/doc/use-server.md)
+- 说明：当前为快速扫描模式，只在日志中展示结果。更多功能（比如问题提交到自己搭建的server、问题追踪、体验更多分析规则包）可参考[完整模式用法](doc/use-server.md)
 
 ## Inputs
 
