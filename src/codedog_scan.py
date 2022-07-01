@@ -72,7 +72,6 @@ class TCAPlugin(object):
         self.languages = self.get_param("language")
         self.total_scan = self.get_param("total_scan")
         self.compare_branch = self.get_param("compare_branch")
-        self.source_dir = self.get_param("source_dir")
         # 超时时间
         self.timeout = self.get_param("timeout")
         # 与服务端通信参数
