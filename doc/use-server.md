@@ -61,6 +61,8 @@
 在github仓库的工作流目录（如果`.github/workflows`目录不存在，先创建）下增加以下`tca.yml`文件，并提交即可。每次代码提交操作，都将触发一次TCA代码分析。
 
 `.github/workflows/tca.yml`
+
+### 1. push触发配置示例
 ```
 name: TCA
 
@@ -83,6 +85,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Tencent Cloud Code Analysis
+        run: /tca_action/entrypoint.sh
+```
+
+### 2. pull_request触发配置示例
+
+- 需要配置`INPUT_COMPARE_BARNCH`为`$GITHUB_BASE_REF`，也就是将对比分支设置为pull_request的目标分支。
+- checkout拉代码步骤，需要配置`ref`参数，指定拉取pull_request的源分支代码。（否则默认会进行预合入操作，产生临时版本号）。
+- checkout参数`fetch-depth`设置为`0`，需要拉取所有分支，否则无法进行pull_request源分支与目标分支间的对比。
+
+```
+name: TCA
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  TCA:
+    name: Tencent Cloud Code Analysis
+    runs-on: ubuntu-latest
+    env:
+      INPUT_QUICK_SCAN: false
+      INPUT_SERVER_IP: 按实际填写
+      INPUT_TOKEN: 按实际填写
+      INPUT_ORG_SID: 按实际填写
+      INPUT_TEAM_NAME: 按实际填写
+      INPUT_SCHEME_ID: 按实际填写
+      INPUT_TOTAL_SCAN: false
+      INPUT_COMPARE_BARNCH: $GITHUB_BASE_REF
+    container:
+      image: bensonhome/tca-action
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
       - name: Tencent Cloud Code Analysis
         run: /tca_action/entrypoint.sh
 ```
