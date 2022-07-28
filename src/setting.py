@@ -19,4 +19,4 @@ PUPPY_TASK_EXE_NAME = "scantask"
 SCAN_TIMEOUT = 60 * 120
 
 # puppy安装包下载url
-PUPPY_DOWNLOAD_URL = "https://github.com/Tencent/CodeAnalysis/releases/download/20220629.1/tca-client-v20220629.1-x86_64-linux.zip"
+PUPPY_DOWNLOAD_URL = "https://github.com/Tencent/CodeAnalysis/releases/download/20220728.1/tca-client-v20220728.1-x86_64-linux.zip"

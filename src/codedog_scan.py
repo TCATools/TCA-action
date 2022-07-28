@@ -308,7 +308,6 @@ class TCAPlugin(object):
             scan_args.extend(['--ref-scheme-id', self.scheme_id])
         if self.compare_branch:
             scan_args.extend(["--compare-branch", self.compare_branch])
-            scan_args.extend(["--ignore-merged-issue"])
 
         # 启动扫描进程
         try:
