@@ -46,7 +46,7 @@
 - required: 否
 - 可选，扫描语言，多个可以用英文逗号分隔，不填会自动识别语言。
 
-### INPUT_COMPARE_BARNCH
+### INPUT_COMPARE_BRANCH
 - type: String
 - required: 否
 - 可选，对比分支，过滤掉从对比分支引入的历史代码问题，常用于MR场景，一般设置为MR目标分支。
