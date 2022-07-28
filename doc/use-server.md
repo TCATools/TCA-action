@@ -115,7 +115,7 @@ jobs:
       INPUT_TEAM_NAME: 按实际填写
       INPUT_SCHEME_ID: 按实际填写
       INPUT_TOTAL_SCAN: false
-      INPUT_COMPARE_BARNCH: ${{ github.event.pull_request.base.ref }}
+      INPUT_COMPARE_BRANCH: ${{ github.event.pull_request.base.ref }}
     container:
       image: bensonhome/tca-action
     steps:
