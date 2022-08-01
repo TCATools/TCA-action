@@ -21,6 +21,7 @@ from downloadpuppy import PuppyDownloader
 from pathfilter import StringMgr, PathUtil, FilterPathUtil
 from cmdarg import CmdArgParser
 from setting import PUPPY_DOWNLOAD_URL
+from redline import RedLine
 
 
 logger = logging.getLogger("TCA-action")
@@ -46,6 +47,9 @@ class TCAPlugin(object):
         # 初始化日志打印
         LoggerMgr.setup_logger()
         self.status_code = 0
+        self.url_list = {}
+        self.fail_msg = []  # 未通过红线指标的提示信息
+        self.pass_msg = []  # 已通过红线指标的提示信息
 
         # 判断是否快速扫描模式
         self.quick_scan = self.get_param("quick_scan")
@@ -222,6 +226,67 @@ class TCAPlugin(object):
         scan_paths = FilterPathUtil(path_include, path_exclude).get_include_files(scan_paths, self.source_dir)
         return scan_paths
 
+    def check_pass(self, scan_result, quality_data):
+        """
+        scan_result 中的 urls 结构 demo
+        "urls": {
+            "proj_overview": "",     # 概览页
+            "scan_history": "",  # 扫描历史页
+            "issues_new": "",  # 本次新增问题
+            "issues_fixed": "",  # 本次关闭问题
+            "issues_total": "",  # 存量问题
+            "cc_worse_files": "",  # 圈复杂度恶化文件数
+            "cc_result": "",  # 圈复杂度结果页
+            "duplicate_result": "",  # 重复代码结果页
+            "cloc_result": ""  # 代码统计结果页
+        }
+        """
+        urls = scan_result.get("urls", {})
+        issues_new = urls.get("issues_new", "None")
+        issues_total = urls.get("issues_total", "None")
+        cc_worse_files = urls.get("cc_worse_files", "None")
+        cc_result = urls.get("cc_result", "None")
+        duplicate_result = urls.get("duplicate_result", "None")
+
+        metric_keys = {
+            "incr_fatal": {"name": "新增问题量(级别:致命)", "url": issues_new},
+            "incr_error": {"name": "新增问题量(级别:致命+错误)", "url": issues_new},
+            "incr_warning": {"name": "新增问题量(级别:致命+错误+警告)", "url": issues_new},
+            "incr_info": {"name": "新增问题量(级别:致命+错误+警告+提示)", "url": issues_new},
+            "total_fatal": {"name": "存量问题量(级别:致命)", "url": issues_total},
+            "total_error": {"name": "存量问题量(级别:致命+错误)", "url": issues_total},
+            "total_warning": {"name": "存量问题量(级别:致命+错误+警告)", "url": issues_total},
+            "total_info": {"name": "存量问题量(级别:致命+错误+警告+提示)", "url": issues_total},
+            "worse_cc_file_num": {"name": "圈复杂度恶化文件数", "url": cc_worse_files},
+            "over_cc_sum": {"name": "超标圈复杂度总数", "url": cc_result},
+            "cc_func_average": {"name": "代码平均圈复杂度", "url": cc_result},
+            "over_cc_func_count": {"name": "圈复杂度超标方法数", "url": cc_result},
+            "diff_over_cc_func_count": {"name": "变更圈复杂度超标方法数", "url": cc_result},
+            "over_cc_func_average": {"name": "超标方法平均圈复杂度", "url": cc_result},
+            "duplicate_rate": {"name": "代码重复率", "url": duplicate_result}
+        }
+        for key_id, info in metric_keys.items():
+            expected_value = self.get_param(key_id)
+            if expected_value is None:
+                continue
+            if key_id in ["cc_func_average", "over_cc_func_average"]:
+                expected_value = float(expected_value)
+            else:
+                expected_value = int(expected_value)
+            is_pass, actual_value = RedLine().check(key_id, expected_value, quality_data)
+            if is_pass is not None:
+                display_name = metric_keys[key_id]['name']
+                url = metric_keys[key_id]['url']
+                if is_pass:
+                    self.pass_msg.append(f"[pass] {display_name} {key_id} = {actual_value}, 符合: <= {expected_value}")
+                else:
+                    fail_msg = f"[fail] {display_name} {key_id} = {actual_value}, 不符合: <= {expected_value}"
+                    if actual_value is None:
+                        fail_msg += ", 数据为空,请检查对应的检查项是否未开启"
+                    else:
+                        fail_msg += f", 查看详情: {url}"
+                    self.fail_msg.append(fail_msg)
+
     def gen_status_file(self, status, text, url, desc, scan_result=None):
         """
         生成结果文件
@@ -237,9 +302,25 @@ class TCAPlugin(object):
             text = "跳过本次扫描"
 
         scan_report = {}
+        quality_data = None
         # 先对scan_result判空,否则会异常: TypeError: argument of type 'NoneType' is not iterable
         if scan_result:
             scan_report = scan_result.get("scan_report")
+            # 获取质量红线数据
+            quality_data = RedLine().get_readline_data(scan_result)
+            # 判断红线指标
+            if quality_data:
+                self.check_pass(scan_result, quality_data)
+
+        redline_msg = ""
+        if self.pass_msg:
+            pass_msg = "\n" + "\n".join(self.pass_msg)
+            redline_msg += pass_msg
+
+        if self.fail_msg:
+            status = "failure"
+            fail_msg = "\n" + "\n".join(self.fail_msg)
+            redline_msg += fail_msg
 
         status_map = {"success": "通过", "failure": "不通过", "error": "执行异常"}
         code_map = {"success": 0, "failure": 1, "error": 2}
@@ -251,12 +332,16 @@ class TCAPlugin(object):
             "text": text,
             "url": url,
             "description": desc,
+            "redline_msg": redline_msg,
             "scan_report": scan_report,
+            "metrics": quality_data,
         }
 
         result_msg = "\n"
         result_msg += "*" * 100
         result_msg += "\n检查结果: %s。" % status_map[status]
+        if redline_msg:
+            result_msg += "\n质量红线:%s" % redline_msg
         result_msg += "\n%s" % ("*" * 100)
         logger.info(result_msg)
 
@@ -267,6 +352,10 @@ class TCAPlugin(object):
             os.remove(codedog_report_file)
         with open(codedog_report_file, "wb") as fp:
             fp.write(str.encode(json.dumps(result, indent=2, ensure_ascii=False)))
+
+        if self.status_code != 0 and not self.block:  # 如果参数设置为不阻塞，返回码重置为0
+            logger.warning(f"param block=false, reset status code({self.status_code}) to 0.")
+            self.status_code = 0
 
     def __init_tools(self, tca_work_dir, codedog_exe):
         # 扫描参数
