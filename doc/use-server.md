@@ -167,6 +167,8 @@ jobs:
       INPUT_TEAM_NAME: 按实际填写
       INPUT_SCHEME_ID: 按实际填写
       INPUT_TOTAL_SCAN: false
+      INPUT_INCR_INFO: 0
+      INPUT_TOTAL_INFO: 0
     container:
       image: bensonhome/tca-action
     steps:
