@@ -180,7 +180,7 @@ jobs:
 
 ### 2. pull_request触发配置示例
 
-- 需要配置`INPUT_COMPARE_BARNCH`为`$GITHUB_BASE_REF`，也就是将对比分支设置为pull_request的目标分支。
+- 需要配置`INPUT_COMPARE_BARNCH`为`${{ github.event.pull_request.base.ref }}`，也就是将对比分支设置为pull_request的目标分支。
 - checkout拉代码步骤，需要配置`ref`参数，指定拉取pull_request的源分支代码。（否则默认会进行预合入操作，产生临时版本号）。
 - checkout参数`fetch-depth`设置为`0`，需要拉取所有分支，否则无法进行pull_request源分支与目标分支间的对比。
 
