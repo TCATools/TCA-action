@@ -65,7 +65,7 @@ jobs:
         with:
           fetch-depth: 2
       - name: get git diff files
-        run: git diff ${{ github.sha }} ${{ github.sha }}^ --name-only > changed.txt && cat changed.txt
+        run: git config --global core.quotepath false && git diff ${{ github.sha }} ${{ github.sha }}^ --name-only > changed.txt && cat changed.txt
       - name: Tencent Cloud Code Analysis
         uses: TCATools/TCA-action@main
         with:
